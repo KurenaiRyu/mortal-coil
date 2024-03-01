@@ -162,6 +162,7 @@ def main2():
         start_time = time.time()
         result = solver.solve(level, width, height, mapstr).decode("utf-8").split(" ")
         if len(result) != 3:
+            print(mapstr.decode("utf-8"))
             raise Exception("error")
         end_time = time.time()
         print("time: {:.3f} seconds".format(end_time - start_time), result)
@@ -176,6 +177,8 @@ def main2():
                 except:
                     r = s.post(url, data={'x': result[0], 'y': result[1], 'path': result[2]})
         json.dump(s.cookies.get_dict(), open('cookie.json', 'w'), indent=4)
+        if 'your solution sucked' in r.text:
+            raise Exception("error")
         print(r.url, r.request.body, sep='?')
 
 def test():

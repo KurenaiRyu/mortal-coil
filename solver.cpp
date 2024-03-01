@@ -35,52 +35,52 @@ const char* solve(int level, int height, int width, const char* mapstr) {
     // draw(map);
 
     // solve
-    // std::vector<std::future<std::string>> results;
-    // for (int i = 0; i < height; i++) {
-    //     for (int j = 0; j < width; j++) {
-    //         if (map[i][j] == 0) {
-    //             results.push_back(pool.push([=](int) {
-    //                 std::pair<int, int> start = {i, j};
-    //                 std::string path = singleSolve(height, width, map, remaining, start, start, "");
-    //                 if (path != "") {
-    //                     std::string result = std::to_string(j) + " " + std::to_string(i) + " " + path;
-    //                     return result;
-    //                 }
-    //                 return std::string("");
-    //             }));
-    //         }
-    //     }
-    // }
-
-    // int i = 0;
-    // for (auto& result_future : results) {
-    //     std::string result = result_future.get();
-    //     printf("\r%d/%d", ++i, remaining);
-    //     if (!result.empty()) {
-    //         std::cout << std::endl;
-    //         char* r = new char[result.size() + 1];
-    //         memcpy(r, result.c_str(), result.size() + 1);
-    //         return r;
-    //     }
-    // }
-
-    int n = 0;
+    std::vector<std::future<std::string>> results;
     for (int i = 0; i < height; i++) {
         for (int j = 0; j < width; j++) {
             if (map[i][j] == 0) {
-                std::pair<int, int> start = {i, j};
-                std::string path = singleSolve(height, width, map, remaining, start, start, "");
-                if (path != "") {
-                    std::cout << std::endl;
-                    std::string result = std::to_string(j) + " " + std::to_string(i) + " " + path;
-                    char* r = new char[result.size() + 1];
-                    memcpy(r, result.c_str(), result.size() + 1);
-                    return r;
-                }
-                printf("\r%d/%d", ++i, remaining);
+                results.push_back(std::async(std::launch::async, [=]() {
+                    std::pair<int, int> start = {i, j};
+                    std::string path = singleSolve(height, width, map, remaining, start, start, "");
+                    if (path != "") {
+                        std::string result = std::to_string(j) + " " + std::to_string(i) + " " + path;
+                        return result;
+                    }
+                    return std::string("");
+                }));
             }
         }
     }
+
+    int i = 0;
+    for (auto& result_future : results) {
+        std::string result = result_future.get();
+        printf("\r%d/%d", ++i, remaining);
+        if (!result.empty()) {
+            std::cout << std::endl;
+            char* r = new char[result.size() + 1];
+            memcpy(r, result.c_str(), result.size() + 1);
+            return r;
+        }
+    }
+
+    // int n = 0;
+    // for (int i = 0; i < height; i++) {
+    //     for (int j = 0; j < width; j++) {
+    //         if (map[i][j] == 0) {
+    //             std::pair<int, int> start = {i, j};
+    //             std::string path = singleSolve(height, width, map, remaining, start, start, "");
+    //             if (path != "") {
+    //                 std::cout << std::endl;
+    //                 std::string result = std::to_string(j) + " " + std::to_string(i) + " " + path;
+    //                 char* r = new char[result.size() + 1];
+    //                 memcpy(r, result.c_str(), result.size() + 1);
+    //                 return r;
+    //             }
+    //             printf("\r%d/%d", ++n, remaining);
+    //         }
+    //     }
+    // }
 
     std::cout << std::endl;
     return p.c_str();
