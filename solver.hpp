@@ -17,10 +17,12 @@ std::string singleSolve(const int &height, const int &width, int map[], int rema
 
 void draw(const int &height, const int &width, int map[]);
 
-bool check(const int &height, const int &width, int map[], int &remaining);
+bool check(const int &height, const int &width, int map[], int &remaining, std::pair<int, int> &cur);
 
 int degree(const int &height, const int &width, int map[], std::pair<int, int> &pos);
 
 bool through(const int &height, const int &width, int map[], std::pair<int, int> &cur);
 
 bool valid(const int &height, const int &width, int map[], std::pair<int, int> &cur);
+
+int distance(std::pair<int, int> &a, std::pair<int, int> &b);

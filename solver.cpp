@@ -118,7 +118,7 @@ std::string singleSolve(const int &height, const int &width, int map[], int rema
             if (remaining == 0) {
                 return path;
             }
-            if (check(height, width, map, remaining) == true) {
+            if (check(height, width, map, remaining, cur) == true) {
                 std::string result = singleSolve(height, width, map, remaining, start, cur, path);
                 if (result != "") {
                     return result;
@@ -165,7 +165,8 @@ void draw(const int &height, const int &width, int map[]) {
     std::cout << std::endl;
 }
 
-bool check(const int &height, const int &width, int map[], int &remaining) {
+bool check(const int &height, const int &width, int map[], int &remaining, std::pair<int, int> &cur) {
+    int s = 0;
     int n = 1;
     std::pair<int, int> start;
     std::queue<std::pair<int, int>> q;
@@ -185,6 +186,11 @@ bool check(const int &height, const int &width, int map[], int &remaining) {
     int *m = new int[height * width];
     memcpy(m, map, height * width * sizeof(int));
     m[start.first * width + start.second] = 1;
+
+    if (degree(height, width, map, start) == 1) {
+        s++;
+    }
+
     while (!q.empty()) {
         std::pair<int, int> cur = q.front();
         q.pop();
@@ -195,6 +201,13 @@ bool check(const int &height, const int &width, int map[], int &remaining) {
                 m[next.first * width + next.second] = 1;
                 q.push(next);
                 n++;
+                if (degree(height, width, map, next) == 1) {
+                    s++;
+                    if (s > 2) {
+                        delete[] m;
+                        return false;
+                    }
+                }
             }
         }
     }
@@ -230,4 +243,8 @@ bool through(const int &height, const int &width, int map[], std::pair<int, int>
 
 bool valid(const int &height, const int &width, int map[], std::pair<int, int> &cur) {
     return 0 <= cur.first && cur.first < height && 0 <= cur.second && cur.second < width && map[cur.first*width + cur.second] == 0;
+}
+
+int distance(std::pair<int, int> &a, std::pair<int, int> &b) {
+    return abs(a.first - b.first) + abs(a.second - b.second);
 }

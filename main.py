@@ -144,6 +144,7 @@ def main():
         print(r.url, r.request.body, sep='?')
 
 def main2():
+    solver = ctypes.CDLL('build\\libsolver.dll', winmode=0)
     r = s.get(url, cookies=json.load(open('cookie.json', 'r')))
     json.dump(s.cookies.get_dict(), open('cookie.json', 'w'), indent=4)
     tree = etree.HTML(r.text, parser=etree.HTMLParser())
@@ -157,7 +158,6 @@ def main2():
         width = int(script[2].strip().split(' ')[3])
         mapstr = bytes(script[3].strip().split(' ')[3].strip('"'), 'utf-8')
         print(level, width, height)
-        solver = ctypes.CDLL('./out/Release/solver.dll')
         solver.solve.restype = ctypes.c_char_p
         start_time = time.time()
         result = solver.solve(level, width, height, mapstr).decode("utf-8").split(" ")
@@ -196,7 +196,7 @@ def test():
 def test2():
     import ctypes
     import time
-    solver = ctypes.CDLL('./out/Release/solver.dll')
+    solver = ctypes.CDLL('./build/Release/solver.dll')
     solver.solve.restype = ctypes.c_char_p
     start_time = time.time()
     result = solver.solve(34, 14, 15, b"........X..X.......XXX......X.X......X....XX...XX.X..XX......X...XX.XX.X......X.......X.X.X......X.X.......X.XX.X....X...XX.......X..........X.X.X..X.X...X.X..........X......X....X.X...X......X.....X......X....")
