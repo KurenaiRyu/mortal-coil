@@ -11,16 +11,16 @@
 
 #define MAX_SIZE 1000
 
-extern "C" EXPORT const char* solve(int level, int height, int width, const char* mapstr);
+extern "C" EXPORT const char* solve(const int level, const int height, const int width, const char* mapstr);
 
-std::string singleSolve(int height, int width, std::vector<std::vector<int>> map, int remaining, std::pair<int, int> start, std::pair<int, int> cur, std::string path);
+std::string singleSolve(const int &height, const int &width, int map[], int remaining, std::pair<int, int> start, std::pair<int, int> cur, std::string path);
 
-void draw(std::vector<std::vector<int>> &map);
+void draw(const int &height, const int &width, int map[]);
 
-bool check(std::vector<std::vector<int>> &map, int &remaining);
+bool check(const int &height, const int &width, int map[], int &remaining);
 
-int degree(std::vector<std::vector<int>> &map, std::pair<int, int> &pos);
+int degree(const int &height, const int &width, int map[], std::pair<int, int> &pos);
 
-bool through(std::vector<std::vector<int>> &map, std::pair<int, int> &cur);
+bool through(const int &height, const int &width, int map[], std::pair<int, int> &cur);
 
-bool valid(std::vector<std::vector<int>> &map, std::pair<int, int> &cur);
+bool valid(const int &height, const int &width, int map[], std::pair<int, int> &cur);

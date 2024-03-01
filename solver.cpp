@@ -8,7 +8,7 @@
 
 std::string p = "";
 
-ctpl::thread_pool pool(1);
+ctpl::thread_pool pool(4);
 
 std::map<char, std::pair<int, int>> directions = {
     {'U', {-1, 0}},
@@ -17,17 +17,18 @@ std::map<char, std::pair<int, int>> directions = {
     {'R', {0, 1}}
 };
 
-const char* solve(int level, int height, int width, const char* mapstr) {
+const char* solve(const int level, const int height, const int width, const char* mapstr) {
     // initialize map
-    std::vector<std::vector<int>> map(height, std::vector<int>(width, 0));
+    // std::vector<std::vector<int>> map(height, std::vector<int>(width, 0));
+    int *map = new int[height * width];
     int remaining = 0;
     #pragma omp parallel for reduction(+:remaining)
     for (int i = 0; i < height; i++) {
         for (int j = 0; j < width; j++) {
             if (mapstr[i * width + j] == 'X') {
-                map[i][j] = -1;
+                map[i * width + j] = -1;
             } else {
-                map[i][j] = 0;
+                map[i * width + j] = 0;
                 remaining++;
             }
         }
@@ -38,10 +39,13 @@ const char* solve(int level, int height, int width, const char* mapstr) {
     std::vector<std::future<std::string>> results;
     for (int i = 0; i < height; i++) {
         for (int j = 0; j < width; j++) {
-            if (map[i][j] == 0) {
+            if (map[i * width + j] == 0) {
                 results.push_back(std::async(std::launch::async, [=]() {
                     std::pair<int, int> start = {i, j};
-                    std::string path = singleSolve(height, width, map, remaining, start, start, "");
+                    int *m = new int[height * width];
+                    memcpy(m, map, height * width * sizeof(int));
+                    std::string path = singleSolve(height, width, m, remaining, start, start, "");
+                    delete[] m;
                     if (path != "") {
                         std::string result = std::to_string(j) + " " + std::to_string(i) + " " + path;
                         return result;
@@ -67,9 +71,12 @@ const char* solve(int level, int height, int width, const char* mapstr) {
     // int n = 0;
     // for (int i = 0; i < height; i++) {
     //     for (int j = 0; j < width; j++) {
-    //         if (map[i][j] == 0) {
+    //         if (map[i * width + j] == 0) {
     //             std::pair<int, int> start = {i, j};
-    //             std::string path = singleSolve(height, width, map, remaining, start, start, "");
+    //             int *m = new int[height * width];
+    //             memcpy(m, map, height * width * sizeof(int));
+    //             std::string path = singleSolve(height, width, m, remaining, start, start, "");
+    //             delete[] m;
     //             if (path != "") {
     //                 std::cout << std::endl;
     //                 std::string result = std::to_string(j) + " " + std::to_string(i) + " " + path;
@@ -83,40 +90,55 @@ const char* solve(int level, int height, int width, const char* mapstr) {
     // }
 
     std::cout << std::endl;
+    delete[] map;
     return p.c_str();
 }
 
-std::string singleSolve(int height, int width, std::vector<std::vector<int>> map, int remaining, std::pair<int, int> start, std::pair<int, int> cur, std::string path) {
+std::string singleSolve(const int &height, const int &width, int map[], int remaining, std::pair<int, int> start, std::pair<int, int> cur, std::string path) {
     if (start == cur) {
-        map[cur.first][cur.second] = 1;
+        map[cur.first*width + cur.second] = 1;
         remaining--;
     }
     std::pair<int, int> c=cur;
-    std::vector<std::vector<int>> m=map;
+    // int ** m=map;
     int r = remaining;
     for (auto& [dir, d] : directions) {
         std::pair<int, int> next = {c.first + d.first, c.second + d.second};
-        if (0 <= next.first && next.first < height && 0 <= next.second && next.second < width && map[next.first][next.second] == 0) {
+        if (valid(height, width, map, next)) {
             path.push_back(dir);
-            while (0 <= next.first && next.first < height && 0 <= next.second && next.second < width && map[next.first][next.second] == 0) {
-                map[next.first][next.second] = 1;
+            while (valid(height, width, map, next)) {
+                map[next.first*width + next.second] = 1;
                 remaining--;
                 next.first += d.first;
                 next.second += d.second;
             }
             cur = {next.first - d.first, next.second - d.second};
-            // std::cout << path << " " << cur.first << " " << cur.second << " " << remaining << " " << check(map, remaining) << std::endl;
-            // draw(map);
+            // std::cout << path << " " << cur.first << " " << cur.second << " " << remaining << " " << check(height, width, map, remaining) << std::endl;
+            // draw(height, width, map);
             if (remaining == 0) {
                 return path;
             }
-            if (check(map, remaining) == true) {
+            if (check(height, width, map, remaining) == true) {
                 std::string result = singleSolve(height, width, map, remaining, start, cur, path);
                 if (result != "") {
                     return result;
                 }
             }
-            map = m;
+            // map = m;
+
+            // std::cout << "r " << path << " " << cur.first << " " << cur.second << " " << remaining << std::endl;
+            // draw(height, width, map);
+            next = {c.first + d.first, c.second + d.second};
+            while (cur != next) {
+                map[next.first*width + next.second] = 0;
+                remaining++;
+                next.first += d.first;
+                next.second += d.second;
+            }
+            map[next.first*width + next.second] = 0;
+            remaining++;
+            // draw(height, width, map);
+
             path.pop_back();
             remaining = r;
             // std::cout << "r " << path << " " << cur.first << " " << cur.second << " " << remaining << std::endl;
@@ -127,12 +149,12 @@ std::string singleSolve(int height, int width, std::vector<std::vector<int>> map
     return "";
 }
 
-void draw(std::vector<std::vector<int>> &map) {
-    for (int i = 0; i < map.size(); i++) {
-        for (int j = 0; j < map[i].size(); j++) {
-            if (map[i][j] == -1) {
+void draw(const int &height, const int &width, int map[]) {
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
+            if (map[i * width + j] == -1) {
                 std::cout << "X";
-            } else if (map[i][j] == 0) {
+            } else if (map[i * width + j] == 0) {
                 std::cout << ".";
             } else {
                 std::cout << "*";
@@ -143,66 +165,69 @@ void draw(std::vector<std::vector<int>> &map) {
     std::cout << std::endl;
 }
 
-bool check(std::vector<std::vector<int>> &map, int &remaining) {
+bool check(const int &height, const int &width, int map[], int &remaining) {
     int n = 1;
     std::pair<int, int> start;
     std::queue<std::pair<int, int>> q;
-    for (int i = 0; i < map.size(); i++) {
-        for (int j = 0; j < map[i].size(); j++) {
-            if (map[i][j] == 0) {
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
+            if (map[i * width + j] == 0) {
                 start = {i, j};
                 break;
             }
         }
-        if (map[start.first][start.second] == 0) {
+        if (map[start.first * width + start.second] == 0) {
             break;
         }
     }
     q.push(start);
 
-    std::vector<std::vector<int>> m=map;
-    m[start.first][start.second] = 1;
+    int *m = new int[height * width];
+    memcpy(m, map, height * width * sizeof(int));
+    m[start.first * width + start.second] = 1;
     while (!q.empty()) {
         std::pair<int, int> cur = q.front();
         q.pop();
+        // draw(height, width, m);
         for (auto& [_, d] : directions) {
             std::pair<int, int> next = {cur.first + d.first, cur.second + d.second};
-            if (0 <= next.first && next.first < m.size() && 0 <= next.second && next.second < m[0].size() && m[next.first][next.second] == 0) {
-                m[next.first][next.second] = 1;
+            if (valid(height, width, m, next)) {
+                m[next.first * width + next.second] = 1;
                 q.push(next);
                 n++;
             }
         }
     }
+    delete[] m;
 
     return n == remaining;
 }
 
-int degree(std::vector<std::vector<int>> &map, std::pair<int, int> &cur) {
+int degree(const int &height, const int &width, int map[], std::pair<int, int> &cur) {
     int n = 0;
     for (auto& [_, d] : directions) {
         std::pair<int, int> next = {cur.first + d.first, cur.second + d.second};
-        if (valid(map, next)) {
+        if (valid(height, width, map, next)) {
             n++;
         }
     }
     return n;
 }
 
-bool through(std::vector<std::vector<int>> &map, std::pair<int, int> &cur) {
+bool through(const int &height, const int &width, int map[], std::pair<int, int> &cur) {
     std::pair<int, int> up = {cur.first - 1, cur.second};
     std::pair<int, int> down = {cur.first + 1, cur.second};
     std::pair<int, int> left = {cur.first, cur.second - 1};
     std::pair<int, int> right = {cur.first, cur.second + 1};
-    if ((!valid(map, up)) && (!valid(map, down))) {
+    if ((!valid(height, width, map, up)) && (!valid(height, width, map, down))) {
         return true;
     }
-    if ((!valid(map, left)) && (!valid(map, right))) {
+    if ((!valid(height, width, map, left)) && (!valid(height, width, map, right))) {
         return true;
     }
     return false;
 }
 
-bool valid(std::vector<std::vector<int>> &map, std::pair<int, int> &cur) {
-    return 0 <= cur.first && cur.first < map.size() && 0 <= cur.second && cur.second < map[0].size() && map[cur.first][cur.second] == 0;
+bool valid(const int &height, const int &width, int map[], std::pair<int, int> &cur) {
+    return 0 <= cur.first && cur.first < height && 0 <= cur.second && cur.second < width && map[cur.first*width + cur.second] == 0;
 }
