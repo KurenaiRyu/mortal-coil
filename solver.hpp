@@ -21,6 +21,8 @@ bool check(const int &height, const int &width, int map[], int &remaining, std::
 
 int degree(const int &height, const int &width, int map[], std::pair<int, int> &pos);
 
+int degreewithend(const int &height, const int &width, int map[], std::pair<int, int> &cur, std::pair<int, int> &end);
+
 bool through(const int &height, const int &width, int map[], std::pair<int, int> &cur);
 
 bool valid(const int &height, const int &width, int map[], std::pair<int, int> &cur);

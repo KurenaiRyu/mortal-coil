@@ -1,14 +1,9 @@
 #include "solver.hpp"
 #include <iostream>
 #include <future>
-#include "ctpl.h"
 #include <queue>
 
-#define MAX_SIZE 1000
-
 std::string p = "";
-
-ctpl::thread_pool pool(4);
 
 std::map<char, std::pair<int, int>> directions = {
     {'U', {-1, 0}},
@@ -36,61 +31,66 @@ const char* solve(const int level, const int height, const int width, const char
     // draw(map);
 
     // solve
-    std::vector<std::future<std::string>> results;
-    for (int i = 0; i < height; i++) {
-        for (int j = 0; j < width; j++) {
-            if (map[i * width + j] == 0) {
-                results.push_back(std::async(std::launch::async, [=]() {
-                    std::pair<int, int> start = {i, j};
-                    int *m = new int[height * width];
-                    memcpy(m, map, height * width * sizeof(int));
-                    std::string path = singleSolve(height, width, m, remaining, start, start, "");
-                    delete[] m;
-                    if (path != "") {
-                        std::string result = std::to_string(j) + " " + std::to_string(i) + " " + path;
-                        return result;
-                    }
-                    return std::string("");
-                }));
-            }
-        }
-    }
-
-    int i = 0;
-    for (auto& result_future : results) {
-        std::string result = result_future.get();
-        printf("\r%d/%d", ++i, remaining);
-        if (!result.empty()) {
-            std::cout << std::endl;
-            char* r = new char[result.size() + 1];
-            memcpy(r, result.c_str(), result.size() + 1);
-            return r;
-        }
-    }
-
-    // int n = 0;
+    // int k = 0;
     // for (int i = 0; i < height; i++) {
+    //     std::vector<std::future<std::string>> results;
     //     for (int j = 0; j < width; j++) {
     //         if (map[i * width + j] == 0) {
-    //             std::pair<int, int> start = {i, j};
-    //             int *m = new int[height * width];
-    //             memcpy(m, map, height * width * sizeof(int));
-    //             std::string path = singleSolve(height, width, m, remaining, start, start, "");
-    //             delete[] m;
-    //             if (path != "") {
-    //                 std::cout << std::endl;
-    //                 std::string result = std::to_string(j) + " " + std::to_string(i) + " " + path;
-    //                 char* r = new char[result.size() + 1];
-    //                 memcpy(r, result.c_str(), result.size() + 1);
-    //                 return r;
-    //             }
-    //             printf("\r%d/%d", ++n, remaining);
+    //             results.push_back(std::async(std::launch::async, [=]() {
+    //                 std::pair<int, int> start = {i, j};
+    //                 int *m = new int[height * width];
+    //                 memcpy(m, map, height * width * sizeof(int));
+    //                 std::string path = singleSolve(height, width, m, remaining, start, start, "");
+    //                 delete[] m;
+    //                 if (path != "") {
+    //                     std::string result = std::to_string(j) + " " + std::to_string(i) + " " + path;
+    //                     return result;
+    //                 }
+    //                 return std::string("");
+    //             }));
+    //         }
+    //     }
+    //     for (auto& result_future : results) {
+    //         std::string result = result_future.get();
+    //         printf("\r%d/%d", ++k, remaining);
+    //         if (!result.empty()) {
+    //             std::cout << std::endl;
+    //             char* r = new char[result.size() + 1];
+    //             memcpy(r, result.c_str(), result.size() + 1);
+    //             return r;
     //         }
     //     }
     // }
 
+    // int degreemap[height * width];
+    // for (int i = 0; i < height; i++) {
+    //     for (int j = 0; j < width; j++) {
+    //         degreemap[i * width + j] = degree(height, width, map, {i, j});
+    //     }
+    // }
+
+    int n = 0;
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
+            if (map[i * width + j] == 0) {
+                std::pair<int, int> start = {i, j};
+                int *m = new int[height * width];
+                memcpy(m, map, height * width * sizeof(int));
+                std::string path = singleSolve(height, width, m, remaining, start, start, "");
+                delete[] m;
+                if (path != "") {
+                    std::cout << std::endl;
+                    std::string result = std::to_string(j) + " " + std::to_string(i) + " " + path;
+                    char* r = new char[result.size() + 1];
+                    memcpy(r, result.c_str(), result.size() + 1);
+                    return r;
+                }
+                printf("\r%d/%d", ++n, remaining);
+            }
+        }
+    }
+
     std::cout << std::endl;
-    delete[] map;
     return p.c_str();
 }
 
@@ -113,7 +113,7 @@ std::string singleSolve(const int &height, const int &width, int map[], int rema
                 next.second += d.second;
             }
             cur = {next.first - d.first, next.second - d.second};
-            // std::cout << path << " " << cur.first << " " << cur.second << " " << remaining << " " << check(height, width, map, remaining) << std::endl;
+            // std::cout << path << " " << cur.first << " " << cur.second << " " << remaining << " " << check(height, width, map, remaining, cur) << std::endl;
             // draw(height, width, map);
             if (remaining == 0) {
                 return path;
@@ -187,23 +187,23 @@ bool check(const int &height, const int &width, int map[], int &remaining, std::
     memcpy(m, map, height * width * sizeof(int));
     m[start.first * width + start.second] = 1;
 
-    if (degree(height, width, map, start) == 1) {
+    if (degreewithend(height, width, map, start, cur) == 1) {
         s++;
     }
 
     while (!q.empty()) {
-        std::pair<int, int> cur = q.front();
+        std::pair<int, int> c = q.front();
         q.pop();
         // draw(height, width, m);
         for (auto& [_, d] : directions) {
-            std::pair<int, int> next = {cur.first + d.first, cur.second + d.second};
+            std::pair<int, int> next = {c.first + d.first, c.second + d.second};
             if (valid(height, width, m, next)) {
                 m[next.first * width + next.second] = 1;
                 q.push(next);
                 n++;
-                if (degree(height, width, map, next) == 1) {
+                if (degreewithend(height, width, map, next, cur) == 1) {
                     s++;
-                    if (s > 2) {
+                    if (s > 1) {
                         delete[] m;
                         return false;
                     }
@@ -223,6 +223,20 @@ int degree(const int &height, const int &width, int map[], std::pair<int, int> &
         if (valid(height, width, map, next)) {
             n++;
         }
+    }
+    return n;
+}
+
+int degreewithend(const int &height, const int &width, int map[], std::pair<int, int> &cur, std::pair<int, int> &end) {
+    int n = 0;
+    for (auto& [_, d] : directions) {
+        std::pair<int, int> next = {cur.first + d.first, cur.second + d.second};
+        if (valid(height, width, map, next)) {
+            n++;
+        }
+    }
+    if (distance(cur, end) == 1) {
+        n++;
     }
     return n;
 }

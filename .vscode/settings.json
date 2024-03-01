@@ -1,5 +1,6 @@
 {
     "files.associations": {
+        "*.lilblock": "shaderlab",
         "*.ent": "pdb",
         "compare": "cpp",
         "concepts": "cpp",
@@ -73,6 +74,14 @@
         "stop_token": "cpp",
         "thread": "cpp",
         "unordered_map": "cpp",
-        "xhash": "cpp"
+        "xhash": "cpp",
+        "*.tcc": "cpp",
+        "cwctype": "cpp",
+        "memory_resource": "cpp",
+        "numeric": "cpp",
+        "random": "cpp",
+        "string_view": "cpp",
+        "numbers": "cpp",
+        "semaphore": "cpp"
     }
 }
