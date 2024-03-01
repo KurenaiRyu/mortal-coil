@@ -2,15 +2,12 @@ import requests
 from lxml import etree
 from enum import Enum
 from copy import deepcopy
+import ctypes
+import time
+import json
 
 s = requests.Session()
 url = 'https://www.hacker.org/coil/'
-cookie = {
-    'PHPSESSID': '50cb93d11f730a4fc7bbb1935546c345',
-    'phpbb3_gebwk_k': '3nwac5ltva4rd4x0',
-    'phpbb3_gebwk_u': '50406',
-    'phpbb3_gebwk_sid': 'b076b1199369056ed789f1a47268e206'
-}
 
 class State(Enum):
     WALL = -1
@@ -132,7 +129,7 @@ def singleSolve(oldcoil : Coil) -> 'Coil':
     return oldcoil
 
 def main():
-    r = s.get(url, cookies=cookie)
+    r = s.get(url, cookies=json.load(open('cookie.json', 'r')))
     while True:
         tree = etree.HTML(r.text, parser=etree.HTMLParser())
         script = tree.xpath('//td[@id="pgfirst"]/script/text()')[0]
@@ -146,5 +143,65 @@ def main():
         r = s.post(url, data=result.getSolution())
         print(r.url, r.request.body, sep='?')
 
+def main2():
+    r = s.get(url, cookies=json.load(open('cookie.json', 'r')))
+    json.dump(s.cookies.get_dict(), open('cookie.json', 'w'), indent=4)
+    tree = etree.HTML(r.text, parser=etree.HTMLParser())
+    print(tree.xpath('//body//text()')[17].strip())
+    while True:
+        tree = etree.HTML(r.text, parser=etree.HTMLParser())
+        script = tree.xpath('//td[@id="pgfirst"]/script/text()')[0].split(';')
+        # script = 'var curLevel = 4; var width = 7; var height = 6; var boardStr = ".................XX..X..XX.....X......X...";'
+        level = int(tree.xpath('//body/text()')[4].split(' ')[1])
+        height = int(script[1].strip().split(' ')[3])
+        width = int(script[2].strip().split(' ')[3])
+        mapstr = bytes(script[3].strip().split(' ')[3].strip('"'), 'utf-8')
+        print(level, width, height)
+        solver = ctypes.CDLL('./out/Release/solver.dll')
+        solver.solve.restype = ctypes.c_char_p
+        start_time = time.time()
+        result = solver.solve(level, width, height, mapstr).decode("utf-8").split(" ")
+        if len(result) != 3:
+            raise Exception("error")
+        end_time = time.time()
+        print("time: {:.3f} seconds".format(end_time - start_time), result)
+        try:
+            r = s.post(url, data={'x': result[0], 'y': result[1], 'path': result[2]})
+        except:
+            try:
+                r = s.post(url, data={'x': result[0], 'y': result[1], 'path': result[2]})
+            except:
+                try:
+                    r = s.post(url, data={'x': result[0], 'y': result[1], 'path': result[2]})
+                except:
+                    r = s.post(url, data={'x': result[0], 'y': result[1], 'path': result[2]})
+        json.dump(s.cookies.get_dict(), open('cookie.json', 'w'), indent=4)
+        print(r.url, r.request.body, sep='?')
+
+def test():
+    import time
+    script = 'var curLevel = 33; var width = 14; var height = 14; var boardStr = "...X......X....X...XX...X.X...X.......X...X......X..XX.....X...X...X...X....XX.X.....X.....X.XX..........X....X.X...XX..XX......X.XX..X..X.X....X...X.XX.X.X....X...X..X......XX..X...X.............";'
+    coil = Coil.parse(script)
+    coil.draw()
+    start_time = time.time()
+    result = solve(coil)
+    end_time = time.time()
+    print(coil.start, coil.steps)
+    print(result.getSolution())
+    print("耗时: {:.2f}秒".format(end_time - start_time))
+
+def test2():
+    import ctypes
+    import time
+    solver = ctypes.CDLL('./out/Release/solver.dll')
+    solver.solve.restype = ctypes.c_char_p
+    start_time = time.time()
+    result = solver.solve(34, 14, 15, b"........X..X.......XXX......X.X......X....XX...XX.X..XX......X...XX.XX.X......X.......X.X.X......X.X.......X.XX.X....X...XX.......X..........X.X.X..X.X...X.X..........X......X....X.X...X......X.....X......X....")
+    end_time = time.time()
+    print(result)
+    print("耗时: {:.2f}秒".format(end_time - start_time))
+
 if __name__ == '__main__':
-    main()
+    # main()
+    main2()
+    # test2()

@@ -4,4 +4,6 @@ set(CMAKE_CXX_STANDARD 20)
 
 project(solver)
 
-add_library(PROJECT_NAME solver.cpp)
+add_library(solver SHARED solver.cpp)
+
+add_executable(test test.cpp solver.cpp)

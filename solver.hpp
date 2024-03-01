@@ -11,27 +11,16 @@
 
 #define MAX_SIZE 1000
 
-enum Direction {
-    UP,
-    DOWN,
-    LEFT,
-    RIGHT
-};
+extern "C" EXPORT const char* solve(int level, int height, int width, const char* mapstr);
 
-std::map<Direction, std::pair<int, int>> directions = {
-    {UP, {0, -1}},
-    {DOWN, {0, 1}},
-    {LEFT, {-1, 0}},
-    {RIGHT, {1, 0}}
-};
+std::string singleSolve(int height, int width, std::vector<std::vector<int>> map, int remaining, std::pair<int, int> start, std::pair<int, int> cur, std::string path);
 
-std::map<Direction, char> directionChars = {
-    {UP, 'U'},
-    {DOWN, 'D'},
-    {LEFT, 'L'},
-    {RIGHT, 'R'}
-};
+void draw(std::vector<std::vector<int>> &map);
 
-extern "C" EXPORT std::string solve(int level, int height, int width, std::string mapstr);
+bool check(std::vector<std::vector<int>> &map, int &remaining);
 
-std::string singleSolve(int height, int width, int map[MAX_SIZE][MAX_SIZE], int remaining, std::pair<int, int> cur, std::string path);
+int degree(std::vector<std::vector<int>> &map, std::pair<int, int> &pos);
+
+bool through(std::vector<std::vector<int>> &map, std::pair<int, int> &cur);
+
+bool valid(std::vector<std::vector<int>> &map, std::pair<int, int> &cur);
