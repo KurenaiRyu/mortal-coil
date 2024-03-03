@@ -93,8 +93,6 @@ suspend fun main() {
 
     client.close()
     scope.cancel()
-//    val json = Json.encodeToString(ListSerializer(SolveLog.serializer()),  logs)
-//    Files.writeString(Path.of("./solve.json"), json, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
 }
 
 fun initCookie() {

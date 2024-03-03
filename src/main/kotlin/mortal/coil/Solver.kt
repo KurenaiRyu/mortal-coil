@@ -178,71 +178,6 @@ class Solver(
         return null
     }
 
-//    fun solveNode(
-//        map: Array<IntArray>,
-//        remaining: Int,
-//        start: Pair<Int, Int>,
-//        cur: Pair<Int, Int>,
-//        path: String,
-//        degreeMap: Array<IntArray>,
-//    ): String {
-//        if (start == cur) {
-//            map[cur.first][cur.second] = 1
-//            degreeUpdate(map, cur, degreeMap)
-//            remaining--
-//        }
-//        var c = cur
-//        var r = remaining
-//        for ((dir, d) in directions) {
-//            var next = cur.first + d.first to cur.second + d.second
-//            if (validBorder(next) && degreeMap[next.first][next.second] > 0) {
-//                path += dir
-//                if (this.debug) println(Thread.currentThread().name + "$start $path")
-//                while (validBorder(next) && degreeMap.at(next) > 0) {
-//                    map[next.first][next.second] = 1
-//                    degreeUpdate(map, next, degreeMap)
-//                    remaining--
-//                    next = next.first + d.first to next.second + d.second
-//                }
-//                cur = next.first - d.first to next.second - d.second
-//
-////                draw(map, height, width)
-////                drawDegree(height, width, degreeMap)
-//
-//                if (remaining == 0) {
-//                    return path
-//                }
-//                if (check(height, width, map, remaining, cur, degreeMap)) {
-//                    val result = solveNode(height, width, map, remaining, start, cur, path, degreeMap)
-//                    if (result != "") return result
-//                }
-//
-//                next = c.first + d.first to c.second + d.second
-//                while (validBorder(next) && cur != next) {
-//                    map[next.first][next.second] = 0
-//                    degreeUpdate(map, next, degreeMap)
-//                    remaining++
-//                    next = next.first + d.first to next.second + d.second
-//                }
-//                if (validBorder(next)) {
-//                    map[next.first][next.second] = 0
-//                    degreeUpdate(map, next, degreeMap)
-//                }
-////            remaining++
-//
-//                path = path.dropLast(1)
-//                remaining = r
-//            } else if (remaining == 1 && validBorder(next) && map[next.first][next.second] == 0) {
-//                if (path.last() != dir) {
-//                    path += dir
-//                }
-//                return path
-//            }
-//        }
-//
-//        return ""
-//    }
-
     fun distance(a: Pair<Int, Int>, b: Pair<Int, Int>): Int {
         return abs(a.first - b.first) + abs(a.second - b.second)
     }
@@ -307,13 +242,6 @@ class Solver(
         }
         return n
     }
-
-//    fun degreeUpdate(node: Node) {
-//        for (d in directions.values) {
-//            val next = node.curr + d
-//            if (validBorder(next) &&)
-//        }
-//    }
 
     fun degreeUpdate(map: Array<IntArray>, cur: Pair<Int, Int>, degreeMap: Array<IntArray>) {
         if (map[cur.first][cur.second] == EMPTY) {
