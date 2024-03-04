@@ -1,5 +1,8 @@
 package mortal.coil
 
+import mortal.coil.Solver.Companion.EMPTY
+import mortal.coil.Solver.Companion.PASS
+import mortal.coil.Solver.Companion.WALL
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -27,7 +30,7 @@ fun draw(solver: Solver, root: Solver.Root, node: Solver.Node, debug: Boolean = 
     val sb = StringBuilder("\n")
     sb.appendLine("${root.start} [${node.path.length}]${node.path}")
     sb.appendLine()
-    draw(solver.height, solver.width, node.map, debug, sb)
+    draw(solver.height, solver.width, node.map, solver.validMap, debug, sb, start = root.start, curr = node.curr)
     drawDegree(solver.height, solver.width, node.degreeMap, debug, sb)
     log.info(sb.toString())
 }
@@ -46,23 +49,44 @@ fun drawDegree(height: Int, width: Int, map: Array<IntArray>, debug: Boolean = t
     if (print) log.info(sb.toString())
 }
 
-fun draw(height: Int, width: Int, map: Array<IntArray>, debug: Boolean = true, sb: StringBuilder? = null) {
+fun draw(
+    height: Int,
+    width: Int,
+    map: Array<IntArray>,
+    validMap: Array<BooleanArray>,
+    debug: Boolean = true,
+    sb: StringBuilder? = null,
+    start: Pair<Int, Int>? = null,
+    curr: Pair<Int, Int>? = null,
+) {
     if (debug.not()) return
     val print = sb == null
     val sb = sb?:StringBuilder("\n")
     for (i in 0 until height) {
         for (j in 0 until width) {
-            when (map[i][j]) {
-                -1 -> {
-                    sb.append("X")
-                }
+            val p = i to j
+            if (start == p) sb.append("S")
+            else if (curr == p) sb.append("C")
+            else {
+                when (map[i][j]) {
+                    WALL -> {
+                        sb.append("X")
+                    }
 
-                0 -> {
-                    sb.append(".")
-                }
+                    EMPTY -> {
+                        if (validMap[i][j])
+                            sb.append(".")
+                        else
+                            sb.append("-")
+                    }
 
-                else -> {
-                    sb.append("*")
+                    PASS -> {
+                        sb.append("+")
+                    }
+
+                    else -> {
+                        sb.append("?")
+                    }
                 }
             }
         }

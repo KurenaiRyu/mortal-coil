@@ -10,26 +10,30 @@ import kotlin.math.abs
 class Solver(
     val height: Int,
     val width: Int,
-    val mapStr: String,
-    val parallelNum: Int = 6,
+    mapStr: String,
     val debug: Boolean = true,
-    val scope: CoroutineScope = CoroutineScope(Dispatchers.IO)
+    parent: CoroutineScope = CoroutineScope(Dispatchers.IO)
 ) {
 
+    private val scope = parent.plus(CoroutineName("Solver"))
+
     companion object {
-        private val directions = mapOf(
+        val directions = mapOf(
             'U' to Pair(-1, 0),
             'D' to Pair(1, 0),
             'L' to Pair(0, -1),
             'R' to Pair(0, 1),
         )
 
-        private const val WALL = -1
-        private const val EMPTY = 0
-        private const val PASS = 1
+        const val WALL = -1
+        const val EMPTY = 0
+        const val PASS = 1
     }
 
-    private var remaining = 0
+    var remaining = 0
+    var validPoints = 0
+    var parallel = false
+    var startCount = 0
 
     private val map = Array(height) { h ->
         IntArray(width) { w ->
@@ -41,79 +45,90 @@ class Solver(
             }
         }
     }
-    private val degreeMap = Array(height) { h ->
+    val degreeMap = Array(height) { h ->
         IntArray(width) { w ->
             if (map[h][w] == EMPTY) calculateDegree(map, h to w)
             else 0
         }
     }
 
+    val validMap = Array(height) { BooleanArray(width) { true } }
+    val degreeArr = Array(5) {
+        arrayListOf<Pair<Int, Int>>()
+    }
+    val startedPoints = Array(height) { BooleanArray(width) { false } }
+
     init {
+        prepare()
         if (debug) {
             val sb = StringBuilder("\n")
-            draw(height, width, map, debug, sb)
+            draw(height, width, map, validMap, debug, sb)
             drawDegree(height, width, degreeMap, debug, sb)
             log.info(sb.toString())
         }
     }
 
-    fun solve(): Pair<Root, Node>? {
+    private fun prepare() {
+        validPoints = remaining
+//        for (i in 0 until height) {
+//            for (j in 0 until width) {
+//                val degree = degreeMap[i][j]
+//                degreeArr[degree].add(i to j)
+//                if (degreeMap[i][j] == 1) {
+//                    for (d in directions.values) {
+//                        var ni = i + d.first
+//                        var nj = j + d.first
+//                        while (validPoint(ni, nj) && degreeMap[ni][nj] == 2) {
+//                            validMap[ni][nj] = false
+//                            validPoints--
+//                            ni += d.first
+//                            nj += d.first
+//                        }
+//                    }
+//                }
+//            }
+//        }
+    }
 
-        for (i in 0 until height) {
-            for (j in 0 until width) {
-                if (map[i][j] == 0) {
+    fun solve(): Pair<Root, Node>? {
+        for (i in 0 .. 4) {
+            for ((h, w) in degreeArr[i]) {
+                if (map[h][w] == 0) {
+                    val point = h to w
+                    startCount++
+                    startedPoints[h][w] = true
                     val m = map.deepClone()
                     val d = degreeMap.deepClone()
-//                    val path = solveNode(height, width, m, remaining, i to j, i to j, "", d)
-                    val root = Root(m, d, i to j, remaining)
-                    val node = solveNode(root)?: return null
+                    val root = Root(m, d, point, remaining)
+                    val node = solveNode(root) ?: continue
                     return root to node
                 }
             }
         }
+
+//        for (i in 0 until height) {
+//            for (j in 0 until width) {
+//                if (map[i][j] == 0) {
+//                    startCount++
+//                    val m = map.deepClone()
+//                    val d = degreeMap.deepClone()
+//                    val root = Root(m, d, i to j, remaining)
+//                    val node = solveNode(root) ?: continue
+//                    return root to node
+//                }
+//            }
+//        }
         return null
     }
 
     @OptIn(DelicateCoroutinesApi::class)
     suspend fun solveParallel(): Pair<Root, Node>? {
-//    val scope = CoroutineScope(Dispatchers.IO)
-//        val scope = CoroutineScope(newFixedThreadPoolContext(parallelNum, "solver"))
-//        val threadNo = AtomicInteger()
-//        val threadName = "solver"
-//        val workQueue = LinkedBlockingQueue<java.lang.Runnable>()
-//        val executor = ThreadPoolExecutor(
-//            parallelNum, 20,
-//            0L, TimeUnit.MILLISECONDS,
-//            workQueue
-//        ) { runnable ->
-//            val t = Thread(runnable, if (parallelNum == 1) threadName else threadName + "-" + threadNo.incrementAndGet())
-//            t.isDaemon = true
-//            t
-//        }
-
-//        executor.submit {
-//            runBlocking {
-//                while (executor.isTerminating.not()) {
-//                    println("workQueue size ${workQueue.size}")
-//                    println("pool size ${executor.poolSize}")
-//                    println("corePoolSize ${executor.corePoolSize}")
-//                    println("activeCount ${executor.activeCount}")
-//                    delay(100)
-//                }
-//            }
-//        }
-
+        parallel = true
         val channel = Channel<Pair<Root, Node?>>(BUFFERED)
 
         for (i in 0 until height) {
             for (j in 0 until width) {
-                if (map[i][j] == 0) {
-//                    executor.submit {
-//                        val m = map.deepClone()
-//                        val d = degreeMap.deepClone()
-////                        val path = solveNode(height, width, m, remaining, i to j, i to j, "", d, Root(m, d, i to j, i to j, remaining, StringBuilder("")))
-//                        channel.trySend(solveNode(Root(m, d, i to j, remaining)))
-//                    }
+                if (map[i][j] == 0 && validMap[i][j]) {
                     scope.launch {
                         val m = map.deepClone()
                         val d = degreeMap.deepClone()
@@ -127,6 +142,7 @@ class Solver(
             val receive = channel.receive()
             val node = receive.second
             if (node != null && node.remaining == 0) {
+                scope.cancel()
                 @Suppress("UNCHECKED_CAST")
                 return receive as Pair<Root, Node>
             }
@@ -141,7 +157,7 @@ class Solver(
 
         val stack = LinkedBlockingDeque<Node>(height * width)
         stack.add(root.asNode())
-        while (stack.isNotEmpty()) {
+        while (stack.isNotEmpty() && scope.isActive) {
             val node = stack.pop()
             for ((direct, d) in directions) {
                 if (
@@ -156,7 +172,7 @@ class Solver(
 
                 // go straight until wall
                 var n = next.curr
-                while (validBorder(n) && next.degreeMap.at(n) > 0) {
+                while (validPoint(n) && next.degreeMap.at(n) > 0) {
                     next.map[n.first][n.second] = 1
                     degreeUpdate(next.map, n, next.degreeMap)
                     next.remaining--
@@ -165,12 +181,12 @@ class Solver(
                 }
 
 
-                draw(this, root, node, debug)
+                draw(this, root, next, debug)
 
                 if (next.remaining == 0) return next
                 if (next.remaining < 0) throw IllegalStateException("remaining < 0")
 
-                stack.push(next)
+                if (!startedPoints[next.curr.first][next.curr.second]) stack.push(next)
 
             }
         }
@@ -220,7 +236,7 @@ class Solver(
                     m[next.first][next.second] = 1
                     queue.add(next)
                     n++
-                    if (validBorder(next) && degreeMap[next.first][next.second] + p == 1) {
+                    if (validPoint(next) && degreeMap[next.first][next.second] + p == 1) {
                         s++
                         if (s > 1) {
                             return false
@@ -236,7 +252,7 @@ class Solver(
         var n = 0
         for (vector in directions.values) {
             val next = cur + vector
-            if (validBorder(next) && map.at(next) == EMPTY) {
+            if (validPoint(next) && map.at(next) == EMPTY) {
                 n++
             }
         }
@@ -247,7 +263,7 @@ class Solver(
         if (map[cur.first][cur.second] == EMPTY) {
             for ((_, d) in directions) {
                 val next = cur + d
-                if (validBorder(next) && map[next.first][next.second] == 0) {
+                if (validPoint(next) && map[next.first][next.second] == 0) {
                     degreeMap[next.first][next.second] = calculateDegree(map, next)
                 }
             }
@@ -257,12 +273,16 @@ class Solver(
         }
     }
 
-    private fun validBorder(cur: Pair<Int, Int>): Boolean {
+    private fun validPoint(x: Int, y: Int): Boolean {
+        return x in 0..<height && y in 0..<width
+    }
+
+    private fun validPoint(cur: Pair<Int, Int>): Boolean {
         return cur.first in 0..<height && cur.second in 0..<width
     }
 
     private fun valid(m: Array<IntArray>, cur: Pair<Int, Int>): Boolean {
-        return validBorder(cur) && m.at(cur) == EMPTY
+        return validPoint(cur) && m.at(cur) == EMPTY
     }
 
     inner class Node(
@@ -276,7 +296,7 @@ class Solver(
 
         fun next(dChar: Char, direction: Pair<Int, Int>): Node? {
             val next = curr + direction
-            return if (validBorder(next).not() || degreeMap.at(next) <= 0) null
+            return if (validPoint(next).not() || degreeMap.at(next) <= 0) null
             else Node(map.deepClone(), degreeMap.deepClone(), next, remaining, path + dChar)
         }
 

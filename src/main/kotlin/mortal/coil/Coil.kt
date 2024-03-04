@@ -2,7 +2,6 @@ package mortal.coil
 
 import io.ktor.client.*
 import io.ktor.client.engine.okhttp.*
-import io.ktor.client.plugins.cookies.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
@@ -11,15 +10,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.builtins.ListSerializer
-import kotlinx.serialization.json.Json
 import org.jsoup.Jsoup
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
-import java.util.regex.Matcher
-import java.util.regex.Pattern
 import kotlin.io.path.createFile
 import kotlin.io.path.exists
 import kotlin.io.path.writeText
@@ -52,8 +47,9 @@ suspend fun main() {
     var currLog = getCurrLog()
     var count = 0
     while (count < LIMIT_TIMES) {
+        val solver = Solver(currLog.height, currLog.width, currLog.boardStr, debug = DEBUG, parent = scope)
         val (result, duration) = measureTimedValue {
-            Solver(currLog.height, currLog.width, currLog.boardStr, scope = scope, debug = DEBUG).solveParallel()
+            solver.solveParallel()
         }
 
         log.info("time $duration")
@@ -66,6 +62,8 @@ suspend fun main() {
         currLog.x = root.start.second
         currLog.y = root.start.first
         currLog.path = node.path
+        currLog.total = solver.remaining
+        currLog.validPoints = solver.validPoints
 
 
         val res = client.get(URL) {
@@ -183,5 +181,7 @@ data class SolveLog(
     val boardStr: String,
     var x: Int? = null,
     var y: Int? = null,
-    var path: String? = null
+    var path: String? = null,
+    var total: Int = 0,
+    var validPoints: Int = 0
 )

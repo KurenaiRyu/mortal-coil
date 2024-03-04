@@ -1,9 +1,13 @@
 package mortal.coil
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert
 import org.junit.Test
+import kotlin.test.fail
 import kotlin.time.measureTime
+import kotlin.time.measureTimedValue
 
 class SolverTest {
 
@@ -52,14 +56,36 @@ class SolverTest {
         solve(height, width, mapStr)
     }
 
+    @Test
+    fun level25() {
+        val level = 25
+        val height = 11;
+        val width = 12;
+        val mapStr = ".........X........XX....XX.............XXX.......XXX......X......X......XXXX...XXX.X.......X...X..X....X......XXX.....X.........X..."
+        solve(height, width, mapStr)
+    }
+
+    @Test
+    fun level50() {
+        val level = 50
+        val height = 19;
+        val width = 21;
+        val mapStr = "X....X....X...XX...XX..XX...XX...X....X..X.X.......X....X.....X...X.......X...XX.X..X..X..X......X....X..X.XXX...........X....X......X....X.XX........X...XX.....XX.X....X..XX.........X.X....XX......X...X...XXX...X..XXX...X..X..XX....X.........X....X..X........XXX....X.X....X...XX.XX.....X..XX..X...XX....XX...X.X.....X.....X....X.X...X.......X...X..X.X..XX............XX..X..............X....XX...."
+        solve(height, width, mapStr)
+    }
+
     private fun solve(height: Int, width: Int, mapStr: String) {
+        val scope = CoroutineScope(Dispatchers.IO)
         runBlocking {
-            val duration = measureTime {
-                Solver(height, width, mapStr, parallelNum = PARALLEL_NUM, debug = DEBUG).solveParallel().also {
+            val solver: Solver
+            val (result, duration) = measureTimedValue {
+                solver = Solver(height, width, mapStr, debug = DEBUG, parent = scope)
+                solver.solve().also {
                     Assert.assertNotNull(it)
-                    log.info("Result: $it")
                 }
             }
+            log.info("Parallel: ${solver.parallel}")
+            log.info("Result: ${solver.startCount}/${solver.validPoints}(${solver.remaining}) $result")
             log.info("time: $duration")
         }
     }
