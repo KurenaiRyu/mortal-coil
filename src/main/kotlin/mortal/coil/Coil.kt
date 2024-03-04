@@ -5,11 +5,9 @@ import io.ktor.client.engine.okhttp.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
 import kotlinx.serialization.Serializable
+import org.apache.logging.log4j.core.util.ShutdownCallbackRegistry
 import org.jsoup.Jsoup
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
@@ -24,8 +22,8 @@ import kotlin.time.measureTimedValue
 
 const val URL = "https://www.hacker.org/coil/"
 const val DEBUG: Boolean = false
-const val PARALLEL_NUM: Int = 5
-const val LIMIT_TIMES: Int = 1
+const val PARALLEL_NUM: Int = 10
+const val LIMIT_TIMES: Int = 30
 
 
 val client = HttpClient(OkHttp) {
@@ -42,12 +40,24 @@ var level = 0
 val levelRegex = "Level: \\d+".toRegex()
 val cookiePath = Path.of("./cookie.txt")
 val scriptPath = Path.of("./script.txt")
+var finished = false
 suspend fun main() {
+    Runtime.getRuntime().addShutdownHook(object : Thread() {
+        override fun run() {
+            if (!finished) {
+                runBlocking {
+                    afterSolve()
+                    client.close()
+                    scope.cancel()
+                }
+            }
+        }
+    })
     initCookie()
     var currLog = getCurrLog()
     var count = 0
     while (count < LIMIT_TIMES) {
-        val solver = Solver(currLog.height, currLog.width, currLog.boardStr, debug = DEBUG, parent = scope)
+        val solver = Solver(currLog.height, currLog.width, currLog.boardStr, parallelNum = PARALLEL_NUM, debug = DEBUG, parent = scope)
         val (result, duration) = measureTimedValue {
             solver.solveParallel()
         }
@@ -63,7 +73,7 @@ suspend fun main() {
         currLog.y = root.start.first
         currLog.path = node.path
         currLog.total = solver.remaining
-        currLog.validPoints = solver.validPoints
+        currLog.step = solver.stepCount
 
 
         val res = client.get(URL) {
@@ -87,10 +97,13 @@ suspend fun main() {
         currLog = parseScript()
         count++
     }
+
     afterSolve()
 
     client.close()
     scope.cancel()
+
+    finished = true
 }
 
 fun initCookie() {
@@ -114,12 +127,22 @@ fun afterSolve() {
 
 fun saveCookie() {
     log.info("Save cookie: $cookie")
-    cookiePath.writeText(cookie, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
+    cookiePath.writeText(
+        cookie,
+        StandardCharsets.UTF_8,
+        StandardOpenOption.CREATE,
+        StandardOpenOption.TRUNCATE_EXISTING
+    )
 }
 
 fun saveScript() {
     log.info("Save script: $script")
-    scriptPath.writeText(script, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
+    scriptPath.writeText(
+        script,
+        StandardCharsets.UTF_8,
+        StandardOpenOption.CREATE,
+        StandardOpenOption.TRUNCATE_EXISTING
+    )
 }
 
 suspend fun getCurrLog(): SolveLog {
@@ -162,7 +185,7 @@ suspend fun getCurrLogByUrl(): SolveLog {
 fun getScript(body: String) {
     val document = Jsoup.parse(body)
     script = document.selectXpath("//td[@id=\"pgfirst\"]/script").first()!!.data()
-    level = levelRegex.find(body)?.value?.substringAfter("Level: ")?.toInt()?: 0
+    level = levelRegex.find(body)?.value?.substringAfter("Level: ")?.toInt() ?: 0
     script = script.replace("curLevel = 4", "curLevel = $level")
     log.info("Get script: $script")
 }
@@ -183,5 +206,9 @@ data class SolveLog(
     var y: Int? = null,
     var path: String? = null,
     var total: Int = 0,
-    var validPoints: Int = 0
-)
+    var step: Int = 0,
+) {
+    override fun toString(): String {
+        return "$step/$total $x,$y $path"
+    }
+}

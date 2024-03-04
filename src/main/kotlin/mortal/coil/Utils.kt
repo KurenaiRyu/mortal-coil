@@ -30,7 +30,7 @@ fun draw(solver: Solver, root: Solver.Root, node: Solver.Node, debug: Boolean = 
     val sb = StringBuilder("\n")
     sb.appendLine("${root.start} [${node.path.length}]${node.path}")
     sb.appendLine()
-    draw(solver.height, solver.width, node.map, solver.validMap, debug, sb, start = root.start, curr = node.curr)
+    draw(solver.height, solver.width, node.map, debug, sb, start = root.start, curr = node.curr)
     drawDegree(solver.height, solver.width, node.degreeMap, debug, sb)
     log.info(sb.toString())
 }
@@ -53,7 +53,6 @@ fun draw(
     height: Int,
     width: Int,
     map: Array<IntArray>,
-    validMap: Array<BooleanArray>,
     debug: Boolean = true,
     sb: StringBuilder? = null,
     start: Pair<Int, Int>? = null,
@@ -65,8 +64,8 @@ fun draw(
     for (i in 0 until height) {
         for (j in 0 until width) {
             val p = i to j
-            if (start == p) sb.append("S")
-            else if (curr == p) sb.append("C")
+            if (start == p) sb.append("+")
+            else if (curr == p) sb.append("-")
             else {
                 when (map[i][j]) {
                     WALL -> {
@@ -74,14 +73,11 @@ fun draw(
                     }
 
                     EMPTY -> {
-                        if (validMap[i][j])
-                            sb.append(".")
-                        else
-                            sb.append("-")
+                        sb.append(".")
                     }
 
                     PASS -> {
-                        sb.append("+")
+                        sb.append("*")
                     }
 
                     else -> {

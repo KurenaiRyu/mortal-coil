@@ -12,8 +12,8 @@ import kotlin.time.measureTimedValue
 class SolverTest {
 
     companion object {
-        const val DEBUG: Boolean = false;
-        const val PARALLEL_NUM: Int = 20;
+        const val DEBUG: Boolean = false
+        const val PARALLEL_NUM: Int = 20
     }
 
     @Test
@@ -74,18 +74,36 @@ class SolverTest {
         solve(height, width, mapStr)
     }
 
+    @Test
+    fun level74() {
+        val level = 74
+        val height = 27
+        val width = 29
+        val mapStr = "..XXXXXXXXXXX..X....X...XXXXX....XXXXX..XX....X..X................X.....XXX..XX..X.X........X..X.......X.XXX....X.XX...XXX.X....XXX...XXX...XX........X.X.X..X..X......X...XX.XXXX.....X.XX....X......X..X...XX..X.......XX......XXXX......X......XX......X........XX.X.X.......X...XX........X....X.X....XX.........X..........X...X....X...X......X..X.....XXXXX.X....X.....X....XX......XXXX...XXXX..X....X..X.....X...X......XXX...X....X..XXXXXXX.X...........X....X..XX...XXX..X......X...X.X..X.....X...XX.....X.XX.X...X.....X..........X..X..X.....X...X.....X...XXX..XXX...XX....X............XX.XX........X....XXXXXX.XXX.......XX.XXX.....X...XX....XXX....XXX..XX..XX...X....X..X....X....X..X..........X......XX....X.XX.X..X...X.........XXX..X....X..X...X.X....X............X....X..XX...XX..."
+        solve(height, width, mapStr)
+    }
+
+    @Test
+    fun level85() {
+        val level = 85
+        val height = 31
+        val width = 32
+        val mapStr = "..X..X.....X....XXX.........XXXX..X....X.....X....X.XX......XXXX....X.....XX...X....X......XXXXX.......XX.X......X....X.XX...XXX.....X..X...X.X..X..XXX.XX.......X...XX...XX..X..XX.....X...XX...X.X.XX....X.....X...XX...X.XX.X.X.X..X..X.....X...X.....XX......X.XX....XX............X......X....X..XX.XX..XX.....XXXX..XXXX....XX...X...X.....XX.XX..X......X.....X...X..XX......X...X...XXXX.........XX...........X..XX.....XXXXX.....X...X..XXX.....XXX........X...X...X...XXXX.........X........X..............X...XX..X....XX.......X...X.......X....XXXX.....X...X.X........X...X..........X...X......X...X...X....X.....XX....XX...X...XXXX.....X.X...X..X.X...X......XX....X.......X.XX.....X......X......X.....XX.......X.....XXXXX...X....X.......X........X...XXXX..X...XX.....X...XXX........X....XX...XXXX....X..XXX.....X....X..XX...XXXX..X...X..X...X...XXX......XXXX....XXX......XX....X...XX..X......X..XXX....X...X..X.X.....X.XX.X.XX......XX...X..X..X.X...X.X..X.XXXXX......X...XX....XXX...X....XXXXX.."
+        solve(height, width, mapStr)
+    }
+
     private fun solve(height: Int, width: Int, mapStr: String) {
         val scope = CoroutineScope(Dispatchers.IO)
         runBlocking {
             val solver: Solver
             val (result, duration) = measureTimedValue {
-                solver = Solver(height, width, mapStr, debug = DEBUG, parent = scope)
-                solver.solve().also {
+                solver = Solver(height, width, mapStr, debug = DEBUG, parent = scope, parallelNum = PARALLEL_NUM)
+                solver.solveParallel().also {
                     Assert.assertNotNull(it)
                 }
             }
             log.info("Parallel: ${solver.parallel}")
-            log.info("Result: ${solver.startCount}/${solver.validPoints}(${solver.remaining}) $result")
+            log.info("Level $level:  ${solver.stepCount}/${solver.remaining} $result")
             log.info("time: $duration")
         }
     }
